@@ -73,7 +73,8 @@ def create_directory(where):
     except OSError as e:
         if e.errno == errno.EEXIST and os.path.isdir(where):
             logger.error(
-                'script run with directory creation, but {1} already exists'.format(where))
+                'script run with directory creation, but {1} already exists'
+                ''.format(where))
             raise
 
 
