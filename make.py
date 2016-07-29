@@ -1,8 +1,9 @@
 """
-Python 3 script template (changeme)
+Make a project directory with associated setup
 """
 
 import argparse
+import errno
 from functools import wraps
 import inspect
 import logging
@@ -20,6 +21,11 @@ POSITIONAL_ARGUMENTS = sorted([
     ['-vv', '--veryverbose', False,
         'very verbose output (logging level == DEBUG)'],
     ['-c', '--create', True, 'create directory at indicated path'],
+    ['-p', '--pyvenv', True, 'create a python virtual environment'],
+    ['-pv', '--pyver', '3', 'version of python to use in virtual environment'],
+    ['-g', '--git', True, 'create a new git repository'],
+    ['-s', '--script', True, 'set up with a python script'],
+    ['-pk', '--package', True, 'set up as a python package']
 ])
 
 
@@ -40,9 +46,20 @@ def main(args):
     """
     main function
     """
-    logger = logging.getLogger(sys._getframe().f_code.co_name)
-    where = args['where']
-    create_directory = arg
+    # logger = logging.getLogger(sys._getframe().f_code.co_name)
+    where = os.path.abspath(args.where)
+    if args.create:
+        create_directory(where)
+    if args.pyvenv:
+        create_venv(where, args.pyver)
+    if args.git:
+        create_git(where)
+    if args.readme:
+        create_readme(where)
+    if args.script:
+        init_script(where)
+    if args.package:
+        init_package(where)
 
 
 @arglogger
@@ -50,13 +67,28 @@ def create_directory(where):
     """
     create the project directory at the indicated path
     """
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    try:
+        os.makedirs(where)
+    except OSError as e:
+        if e.errno == errno.EEXIST and os.path.isdir(where):
+            logger.error(
+                'script run with directory creation, but {1} already exists'.format(where))
+            raise
+
+
+@arglogger
+def create_readme(where):
+    """
+    create an initial readme file
+    """
     pass
 
 
 @arglogger
-def create_venv(where):
+def create_venv(where, version):
     """
-    set up python virtual environment at the indicate path
+    set up python virtual environment
     """
     pass
 
@@ -67,6 +99,21 @@ def create_git(where):
     create git repository
     """
     pass
+
+
+@arglogger
+def init_script(where):
+    """
+    include a python script template
+    """
+    pass
+
+
+@arglogger
+def init_package(where):
+    """
+    set up as a python package
+    """
 
 
 if __name__ == "__main__":
@@ -113,7 +160,7 @@ if __name__ == "__main__":
             log_level = logging.INFO
         log_level_name = logging.getLevelName(log_level)
         logging.getLogger().setLevel(log_level)
-        if log_level != DEFAULTLOGLEVEL:
+        if log_level != DEFAULT_LOG_LEVEL:
             logging.warning(
                 "logging level changed to %s via command line option"
                 % log_level_name)
