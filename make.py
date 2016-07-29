@@ -25,7 +25,8 @@ POSITIONAL_ARGUMENTS = sorted([
     ['-pv', '--pyver', '3', 'version of python to use in virtual environment'],
     ['-g', '--git', True, 'create a new git repository'],
     ['-s', '--script', True, 'set up with a python script'],
-    ['-pk', '--package', True, 'set up as a python package']
+    ['-pk', '--package', True, 'set up as a python package'],
+    ['-r', '--readme', True, 'add a readme file template']
 ])
 
 
