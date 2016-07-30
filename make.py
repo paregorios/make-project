@@ -38,9 +38,11 @@ GITIGNORE_URLS = [
     'https://raw.githubusercontent.com/github/gitignore/master/' +
     'Python.gitignore'
     ]
+template_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                            'templates')
 TEMPLATES = {
-    'script-2': '~/Documents/files/P/python-script-template/template2.py',
-    'script-3': '~/Documents/files/P/python-script-template/template3.py'
+    'script-2': os.path.join(template_dir, 'script-template-2.py'),
+    'script-3': os.path.join(template_dir, 'script-template-3.py')
 }
 
 
