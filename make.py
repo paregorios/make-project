@@ -20,16 +20,17 @@ POSITIONAL_ARGUMENTS = sorted([
     ['-l', '--loglevel', logging.getLevelName(DEFAULT_LOG_LEVEL),
         'desired logging level (' +
         'case-insensitive string: DEBUG, INFO, WARNING, or ERROR'],
-    ['-v', '--verbose', True, 'toggle verbose output (logging level == INFO)'],
-    ['-vv', '--veryverbose', False,
-        'toggle very verbose output (logging level == DEBUG)'],
-    ['-c', '--create', True, 'toggle create directory at indicated path'],
-    ['-p', '--pyvenv', True, 'toggle create a python virtual environment'],
-    ['-pv', '--pyver', '3', 'version of python to use in virtual environment'],
-    ['-g', '--git', True, 'toggle create a new git repository'],
-    ['-s', '--script', True, 'toggle set up with a python script'],
-    ['-pk', '--package', False, 'toggle set up as a python package'],
-    ['-r', '--readme', True, 'toggle add a readme file template']
+    ['-v', '--verbose', False, 'verbose output (logging level == INFO)'],
+    ['-w', '--veryverbose', False,
+        'very verbose output (logging level == DEBUG)'],
+    ['-c', '--create', False, 'create directory at indicated path'],
+    ['-p', '--pyvenv', False, 'create a python virtual environment'],
+    ['-n', '--pyver', '3', 'version of python to use in virtual environment'],
+    ['-g', '--git', False, 'create a new git repository'],
+    ['-s', '--script', False, 'set up with a python script'],
+    ['-k', '--package', False, 'set up as a python package'],
+    ['-r', '--readme', False, 'add a readme file template'],
+    ['-q', '--quiet', False, 'suppress output (logging level == CRITICAL)']
 ])
 GITIGNORE_URLS = [
     'https://raw.githubusercontent.com/github/gitignore/master/Global/' +
@@ -93,6 +94,7 @@ def create_directory(where):
                 'script run with directory creation, but {0} already exists'
                 ''.format(where))
             sys.exit(1)
+    logger.info('created new project directory at {0}'.format(where))
 
 
 @arglogger
@@ -225,10 +227,6 @@ if __name__ == "__main__":
     log_level_name = logging.getLevelName(log_level)
     logging.basicConfig(level=log_level)
 
-    # report script name and docstring
-    fn_this = inspect.stack()[0][1].strip()
-    title_this = __doc__.strip()
-    logging.info(': '.join((fn_this, title_this)))
     try:
         parser = argparse.ArgumentParser(
             description=__doc__,
@@ -268,8 +266,13 @@ if __name__ == "__main__":
             log_level = logging.DEBUG
         elif args.verbose:
             log_level = logging.INFO
+        elif args.quiet:
+            log_level = logging.CRITICAL
         log_level_name = logging.getLevelName(log_level)
         logging.getLogger().setLevel(log_level)
+        fn_this = inspect.stack()[0][1].strip()
+        title_this = __doc__.strip()
+        logging.info(': '.join((fn_this, title_this)))
         if log_level != DEFAULT_LOG_LEVEL:
             logging.warning(
                 "logging level changed to %s via command line option"
