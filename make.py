@@ -9,6 +9,8 @@ import inspect
 import logging
 import os
 import re
+import requests
+import shutil
 import subprocess
 import sys
 import traceback
@@ -29,6 +31,12 @@ POSITIONAL_ARGUMENTS = sorted([
     ['-pk', '--package', True, 'set up as a python package'],
     ['-r', '--readme', True, 'add a readme file template']
 ])
+GITIGNORE_URLS = [
+    'https://raw.githubusercontent.com/github/gitignore/master/Global/' +
+    'OSX.gitignore',
+    'https://raw.githubusercontent.com/github/gitignore/master/' +
+    'Python.gitignore'
+    ]
 
 
 def arglogger(func):
@@ -113,6 +121,8 @@ def create_venv(where, python_version):
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
     logger.debug('mkvirtualenv output:\n      ' +
                  '\n      '.join(result.decode('utf-8').split('\n')))
+    logger.info('created python virtual environment at {0} with {1}'
+                ''.format(where, v))
 
 
 @arglogger
@@ -120,7 +130,48 @@ def create_git(where):
     """
     create git repository
     """
-    pass
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    result = subprocess.run(
+        [
+            'bash',
+            '-c',
+            '. ~/.bash_profile && git init {0}'.format(where)
+        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True).stdout
+    logger.debug('git init output:\n      ' +
+                 '\n      '.join(result.decode('utf-8').split('\n')))
+    logger.info('initialized git repository at {0}'.format(where))
+    logger.debug('trying to set up .gitignore')
+    for url in GITIGNORE_URLS:
+        logger.debug('requesting {0}'.format(url))
+        r = requests.get(url, stream=True)
+        if r.status_code == 200:
+            with open(where + '/.gitignore', 'ab') as f:
+                r.raw.decode_content = True
+                shutil.copyfileobj(r.raw, f)
+        else:
+            raise Exception('aiiiiieeeee')
+            sys.exit(1)
+    try:
+        result = subprocess.run(
+            [
+                'bash',
+                '-c',
+                '. ~/.bash_profile && cd {0} && git add .gitignore '
+                '&& git commit -m '
+                '"intial values for .gitignore from: {1}"'
+                ''.format(where, ', '.join(GITIGNORE_URLS))
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=True).stdout
+    except subprocess.CalledProcessError as e:
+        logger.critical('git add and commit exited with status code '
+                        '{0}:\n      '.format(e.returncode) +
+                        '      \n'.join(e.output.decode('utf-8').split('\n')))
+        sys.exit(e.returncode)
+    logger.debug('git add and commit output:\n      ' +
+                 '\n      '.join(result.decode('utf-8').split('\n')))
+    logger.info('instantiated .gitignore and committed it')
 
 
 @arglogger
