@@ -236,7 +236,7 @@ if __name__ == "__main__":
                 'help': p[3]
             }
             if type(p[2]) == bool:
-                if p[2] == False:
+                if p[2] is False:
                     d['action'] = 'store_true'
                     d['default'] = False
                 else:
