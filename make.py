@@ -66,11 +66,11 @@ def main(args):
     if args.git:
         create_git(where)
     if args.readme:
-        create_readme(where)
+        create_readme(where, args.git)
     if args.script:
-        init_script(where)
+        init_script(where, args.git)
     if args.package:
-        init_package(where)
+        init_package(where, args.git)
 
 
 @arglogger
@@ -90,7 +90,7 @@ def create_directory(where):
 
 
 @arglogger
-def create_readme(where):
+def create_readme(where, git=False):
     """
     create an initial readme file
     """
@@ -175,7 +175,7 @@ def create_git(where):
 
 
 @arglogger
-def init_script(where):
+def init_script(where, git=False):
     """
     include a python script template
     """
@@ -183,7 +183,7 @@ def init_script(where):
 
 
 @arglogger
-def init_package(where):
+def init_package(where, git=False):
     """
     set up as a python package
     """
