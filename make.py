@@ -151,26 +151,8 @@ def create_git(where):
         else:
             raise Exception('aiiiiieeeee')
             sys.exit(1)
-    try:
-        result = subprocess.run(
-            [
-                'bash',
-                '-c',
-                '. ~/.bash_profile && cd {0} && git add .gitignore '
-                '&& git commit -m '
-                '"intial values for .gitignore from: {1}"'
-                ''.format(where, ', '.join(GITIGNORE_URLS))
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            check=True).stdout
-    except subprocess.CalledProcessError as e:
-        logger.critical('git add and commit exited with status code '
-                        '{0}:\n      '.format(e.returncode) +
-                        '      \n'.join(e.output.decode('utf-8').split('\n')))
-        sys.exit(e.returncode)
-    logger.debug('git add and commit output:\n      ' +
-                 '\n      '.join(result.decode('utf-8').split('\n')))
+    git_it(where, '.gitignore', 'intial values for .gitignore from: {0}'
+           ''.format(', '.join(GITIGNORE_URLS)))
     logger.info('instantiated .gitignore and committed it')
 
 
@@ -195,7 +177,26 @@ def git_it(where, what, msg):
     """
     add and commit something to the git repository
     """
-    pass
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    try:
+        result = subprocess.run(
+            [
+                'bash',
+                '-c',
+                '. ~/.bash_profile && cd {0} && git add {1} '
+                '&& git commit -m "{2}"'
+                ''.format(where, what, msg)
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=True).stdout
+    except subprocess.CalledProcessError as e:
+        logger.critical('git add and commit exited with status code '
+                        '{0}:\n      '.format(e.returncode) +
+                        '      \n'.join(e.output.decode('utf-8').split('\n')))
+        raise
+    logger.debug('git add and commit output:\n      ' +
+                 '\n      '.join(result.decode('utf-8').split('\n')))
 
 
 if __name__ == "__main__":
