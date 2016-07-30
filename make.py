@@ -190,6 +190,14 @@ def init_package(where, git=False):
     pass
 
 
+@arglogger
+def git_it(where, what, msg):
+    """
+    add and commit something to the git repository
+    """
+    pass
+
+
 if __name__ == "__main__":
     log_level = DEFAULT_LOG_LEVEL
     log_level_name = logging.getLevelName(log_level)
