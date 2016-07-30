@@ -17,7 +17,7 @@ POSITIONAL_ARGUMENTS = [
         'desired logging level (' +
         'case-insensitive string: DEBUG, INFO, WARNING, or ERROR'],
     ['-v', '--verbose', False, 'verbose output (logging level == INFO)'],
-    ['-vv', '--veryverbose', False,
+    ['-w', '--veryverbose', False,
         'very verbose output (logging level == DEBUG)'],
 ]
 
