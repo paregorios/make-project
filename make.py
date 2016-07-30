@@ -20,16 +20,16 @@ POSITIONAL_ARGUMENTS = sorted([
     ['-l', '--loglevel', logging.getLevelName(DEFAULT_LOG_LEVEL),
         'desired logging level (' +
         'case-insensitive string: DEBUG, INFO, WARNING, or ERROR'],
-    ['-v', '--verbose', False, 'verbose output (logging level == INFO)'],
+    ['-v', '--verbose', True, 'toggle verbose output (logging level == INFO)'],
     ['-vv', '--veryverbose', False,
-        'very verbose output (logging level == DEBUG)'],
-    ['-c', '--create', True, 'create directory at indicated path'],
-    ['-p', '--pyvenv', True, 'create a python virtual environment'],
+        'toggle very verbose output (logging level == DEBUG)'],
+    ['-c', '--create', True, 'toggle create directory at indicated path'],
+    ['-p', '--pyvenv', True, 'toggle create a python virtual environment'],
     ['-pv', '--pyver', '3', 'version of python to use in virtual environment'],
-    ['-g', '--git', True, 'create a new git repository'],
-    ['-s', '--script', True, 'set up with a python script'],
-    ['-pk', '--package', False, 'set up as a python package'],
-    ['-r', '--readme', True, 'add a readme file template']
+    ['-g', '--git', True, 'toggle create a new git repository'],
+    ['-s', '--script', True, 'toggle set up with a python script'],
+    ['-pk', '--package', False, 'toggle set up as a python package'],
+    ['-r', '--readme', True, 'toggle add a readme file template']
 ])
 GITIGNORE_URLS = [
     'https://raw.githubusercontent.com/github/gitignore/master/Global/' +
@@ -63,6 +63,8 @@ def main(args):
     # logger = logging.getLogger(sys._getframe().f_code.co_name)
 
     where = os.path.abspath(args.where)
+    if args.script and args.package:
+        raise ValueError('cannot create both a script and a package')
     if args.create:
         create_directory(where)
     if args.pyvenv:
@@ -187,7 +189,8 @@ def init_package(where, git=False):
     """
     set up as a python package
     """
-    pass
+    raise NotImplementedError('package creation has not been implemented'
+                              ' yet in this script')
 
 
 @arglogger
@@ -232,11 +235,17 @@ if __name__ == "__main__":
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         for p in POSITIONAL_ARGUMENTS:
             d = {
-                'default': p[2],
                 'help': p[3]
             }
             if type(p[2]) == bool:
-                d['action'] = 'store_true'
+                if p[2] == False:
+                    d['action'] = 'store_true'
+                    d['default'] = False
+                else:
+                    d['action'] = 'store_false'
+                    d['default'] = True
+            else:
+                d['default'] = p[2]
             parser.add_argument(
                 p[0],
                 p[1],
@@ -268,7 +277,14 @@ if __name__ == "__main__":
         else:
             logging.info("using default logging level: %s" % log_level_name)
         logging.debug("command line: '%s'" % ' '.join(sys.argv))
-        main(args)
+        try:
+            main(args)
+        except ValueError as e:
+            logging.critical(e)
+            sys.exit(1)
+        except NotImplementedError as e:
+            logging.critical(e)
+            sys.exit(1)
         sys.exit(0)
     except KeyboardInterrupt as e:  # Ctrl-C
         raise e
