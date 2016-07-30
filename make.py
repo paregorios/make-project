@@ -28,7 +28,7 @@ POSITIONAL_ARGUMENTS = sorted([
     ['-pv', '--pyver', '3', 'version of python to use in virtual environment'],
     ['-g', '--git', True, 'create a new git repository'],
     ['-s', '--script', True, 'set up with a python script'],
-    ['-pk', '--package', True, 'set up as a python package'],
+    ['-pk', '--package', False, 'set up as a python package'],
     ['-r', '--readme', True, 'add a readme file template']
 ])
 GITIGNORE_URLS = [
@@ -37,6 +37,10 @@ GITIGNORE_URLS = [
     'https://raw.githubusercontent.com/github/gitignore/master/' +
     'Python.gitignore'
     ]
+TEMPLATES = {
+    'script-2': '~/Documents/files/P/python-script-template/template2.py',
+    'script-3': '~/Documents/files/P/python-script-template/template3.py'
+}
 
 
 def arglogger(func):
@@ -68,7 +72,7 @@ def main(args):
     if args.readme:
         create_readme(where, args.git)
     if args.script:
-        init_script(where, args.git)
+        init_script(where, args.pyver, args.git)
     if args.package:
         init_package(where, args.git)
 
@@ -157,11 +161,25 @@ def create_git(where):
 
 
 @arglogger
-def init_script(where, git=False):
+def init_script(where, py_ver, git=False):
     """
     include a python script template
     """
-    pass
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    src = TEMPLATES['script-{0}'.format(py_ver)]
+    logger.debug('src: {0}'.format(src))
+    src = os.path.expanduser(src)
+    logger.debug('src: {0}'.format(src))
+    src = os.path.abspath(src)
+    logger.debug('src: {0}'.format(src))
+    dest_fn = '{0}.py'.format(os.path.basename(where))
+    dest = '{0}/{1}'.format(where, dest_fn)
+    shutil.copy2(src, dest)
+    logger.debug('copied {0} to {1}'.format(src, dest))
+    if git:
+        git_it(os.path.dirname(dest), dest_fn,
+               'include default script template')
+    logger.info('added script template as {0}'.format(dest_fn))
 
 
 @arglogger
