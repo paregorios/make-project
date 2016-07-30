@@ -9,6 +9,7 @@ import inspect
 import logging
 import os
 import re
+import subprocess
 import sys
 import traceback
 
@@ -48,6 +49,7 @@ def main(args):
     main function
     """
     # logger = logging.getLogger(sys._getframe().f_code.co_name)
+
     where = os.path.abspath(args.where)
     if args.create:
         create_directory(where)
@@ -88,11 +90,29 @@ def create_readme(where):
 
 
 @arglogger
-def create_venv(where, version):
+def create_venv(where, python_version):
     """
     set up python virtual environment
     """
-    pass
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    v = '/usr/local/bin/python{0}'.format(python_version)
+    env_dir = '~/Envs/{0}'.format(os.path.basename(where))
+    if os.path.exists(env_dir):
+        logger.critical(
+            'script run with venv creation, but {0} already exists'
+            ''.format(env_dir))
+        sys.exit(1)
+    # somewhy following returns failure code 1 even when successful,
+    # so can't try
+    result = subprocess.run(
+        [
+            'bash',
+            '-c',
+            '. ~/.bash_profile && mkvirtualenv -v -p {0} {1} && deactivate'
+            ''.format(v, env_dir)
+        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
+    logger.debug('mkvirtualenv output:\n      ' +
+                 '\n      '.join(result.decode('utf-8').split('\n')))
 
 
 @arglogger
@@ -116,6 +136,7 @@ def init_package(where):
     """
     set up as a python package
     """
+    pass
 
 
 if __name__ == "__main__":
