@@ -30,7 +30,8 @@ POSITIONAL_ARGUMENTS = sorted([
     ['-s', '--script', False, 'set up with a python script'],
     ['-k', '--package', False, 'set up as a python package'],
     ['-r', '--readme', False, 'add a readme file template'],
-    ['-q', '--quiet', False, 'suppress output (logging level == CRITICAL)']
+    ['-q', '--quiet', False, 'suppress output (logging level == CRITICAL)'],
+    ['-o', '--origin', '', 'git repository to clone']
 ])
 GITIGNORE_URLS = [
     'https://raw.githubusercontent.com/github/gitignore/master/Global/' +
@@ -63,7 +64,7 @@ def main(args):
     """
     main function
     """
-    # logger = logging.getLogger(sys._getframe().f_code.co_name)
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
 
     where = os.path.abspath(args.where)
     if args.script and args.package:
@@ -72,8 +73,11 @@ def main(args):
         create_directory(where)
     if args.pyvenv:
         create_venv(where, args.pyver)
-    if args.git:
+    logger.debug('args.origin: {0}'.format(args.origin))
+    if args.git and args.origin == '':
         create_git(where)
+    elif args.origin != '':
+        clone_git(where, args.origin)
     if args.readme:
         create_readme(where, args.git)
     if args.script:
@@ -133,6 +137,23 @@ def create_venv(where, python_version):
                  '\n      '.join(result.decode('utf-8').split('\n')))
     logger.info('created python virtual environment at {0} with {1}'
                 ''.format(where, v))
+
+
+@arglogger
+def clone_git(where, whence):
+    """
+    clone a git repository
+    """
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    result = subprocess.run(
+        [
+            'bash',
+            '-c',
+            '. ~/.bash_profile && git clone {0} {1}'.format(whence, where)
+        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True).stdout
+    logger.debug('git clone output:\n      ' +
+                 '\n      '.join(result.decode('utf-8').split('\n')))
+    logger.info('cloned git repository at {0} from {1}'.format(where, whence))
 
 
 @arglogger
