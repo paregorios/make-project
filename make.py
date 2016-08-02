@@ -31,7 +31,8 @@ POSITIONAL_ARGUMENTS = sorted([
     ['-k', '--package', False, 'set up as a python package'],
     ['-r', '--readme', False, 'add a readme file template'],
     ['-q', '--quiet', False, 'suppress output (logging level == CRITICAL)'],
-    ['-o', '--origin', '', 'git repository to clone']
+    ['-o', '--origin', '', 'git repository to clone; negates git init (-g), '
+        'readme creation (-c), python script/package setup (-s or -k)']
 ])
 GITIGNORE_URLS = [
     'https://raw.githubusercontent.com/github/gitignore/master/Global/' +
@@ -73,17 +74,28 @@ def main(args):
         create_directory(where)
     if args.pyvenv:
         create_venv(where, args.pyver)
-    logger.debug('args.origin: {0}'.format(args.origin))
-    if args.git and args.origin == '':
-        create_git(where)
-    elif args.origin != '':
+    if args.origin != '':
         clone_git(where, args.origin)
-    if args.readme:
-        create_readme(where, args.git)
-    if args.script:
-        init_script(where, args.pyver, args.git)
-    if args.package:
-        init_package(where, args.git)
+        if args.git:
+            logger.warning('ignoring git init option in favor of git clone')
+        if args.readme:
+            logger.warning('ignoring readme creation option '
+                           ' in favor of git clone')
+        if args.script:
+            logger.warning('ignoring python script setup option in favor of '
+                           'git clone')
+        if args.package:
+            logger.warning('ignoring python package setup option in favor of '
+                           'git clone')
+    else:
+        if args.git:
+            create_git(where)
+        if args.readme:
+            create_readme(where, args.git)
+        if args.script:
+            init_script(where, args.pyver, args.git)
+        if args.package:
+            init_package(where, args.git)
 
 
 @arglogger
