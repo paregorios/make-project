@@ -110,7 +110,18 @@ def create_readme(where, git=False):
     """
     create an initial readme file
     """
-    pass
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    src = TEMPLATES['readme']
+    src = os.path.expanduser(src)
+    src = os.path.abspath(src)
+    dest_fn = os.path.basename(src)
+    dest = os.path.join(where, dest_fn)
+    shutil.copy2(src, dest)
+    logger.debug('copied {0} to {1}'.format(src, dest))
+    if git:
+        git_it(os.path.dirname(dest), dest_fn,
+               'include default readme template')
+    logger.info('added readme template as {0}'.format(dest_fn))
 
 
 @arglogger
