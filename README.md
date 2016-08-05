@@ -66,7 +66,6 @@ make.py makes a ton of assumptions, to include:
  * Predominantly Python development, using a setup more-or-less like that described by Justin Mayer in  [‘Python Development Environment on Mac OS X Yosemite 10.10’, *Hacker Codex,* 2015](http://hackercodex.com/guide/python-development-environment-on-mac-osx/), especially Python 2, Python 3, and git installed with [*Homebrew*](http://brew.sh/).
  * [Doug Hellman's *virtualenvwrapper*](http://virtualenvwrapper.readthedocs.io/en/latest/) installed with *Homebrew*.
  * Access to the Internet at runtime
- * Availability of external template files locally on disk
 
 The only non-standard Python package used is [*Requests*](http://docs.python-requests.org/en/master/).
 
