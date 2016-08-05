@@ -44,6 +44,11 @@ TEMPLATES = {
     'script-2': os.path.join(template_dir, 'script-template-2.py'),
     'script-3': os.path.join(template_dir, 'script-template-3.py')
 }
+PACKAGE_URLS = [
+    'https://raw.githubusercontent.com/pypa/sampleproject/master/setup.py',
+    'https://raw.githubusercontent.com/pypa/sampleproject/master/setup.cfg',
+    'https://raw.githubusercontent.com/pypa/sampleproject/master/MANIFEST.in'
+]
 
 
 def arglogger(func):
@@ -122,17 +127,8 @@ def create_venv(where, python_version):
         sys.exit(1)
     # somewhy following returns failure code 1 even when successful,
     # so can't try
-    result = subprocess.run(
-        [
-            'bash',
-            '-c',
-            '. ~/.bash_profile && mkvirtualenv -v -p {0} {1} && deactivate'
-            ''.format(v, env_dir)
-        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
-    logger.debug('mkvirtualenv output:\n      ' +
-                 '\n      '.join(result.decode('utf-8').split('\n')))
-    logger.info('created python virtual environment at {0} with {1}'
-                ''.format(where, v))
+    cmd = 'mkvirtualenv -v -p {0} {1} && deactivate'.format(v, env_dir)
+    run(cmd, check=False)  # mkvirtualenv returns non-zero code despite success
 
 
 @arglogger
@@ -141,26 +137,13 @@ def create_git(where):
     create git repository
     """
     logger = logging.getLogger(sys._getframe().f_code.co_name)
-    result = subprocess.run(
-        [
-            'bash',
-            '-c',
-            '. ~/.bash_profile && git init {0}'.format(where)
-        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True).stdout
-    logger.debug('git init output:\n      ' +
-                 '\n      '.join(result.decode('utf-8').split('\n')))
+    cmd = 'git init {0}'.format(where)
+    run(cmd)
     logger.info('initialized git repository at {0}'.format(where))
     logger.debug('trying to set up .gitignore')
-    for url in GITIGNORE_URLS:
-        logger.debug('requesting {0}'.format(url))
-        r = requests.get(url, stream=True)
-        if r.status_code == 200:
-            with open(where + '/.gitignore', 'ab') as f:
-                r.raw.decode_content = True
-                shutil.copyfileobj(r.raw, f)
-        else:
-            raise Exception('aiiiiieeeee')
-            sys.exit(1)
+    targets = [(url, os.path.join(where, '.gitignore'))
+               for url in GITIGNORE_URLS]
+    fetch(targets)
     git_it(where, '.gitignore', 'intial values for .gitignore from: {0}'
            ''.format(', '.join(GITIGNORE_URLS)))
     logger.info('instantiated .gitignore and committed it')
@@ -193,8 +176,15 @@ def init_package(where, git=False):
     """
     set up as a python package
     """
-    raise NotImplementedError('package creation has not been implemented'
-                              ' yet in this script')
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    targets = [(url, os.path.join(where, url.rsplit('/', 1)[-1]))
+               for url in PACKAGE_URLS]
+    fetch(targets)
+    for target in targets:
+        fn = os.path.basename(target[1])
+        git_it(where, fn, 'intial content for {0} from: {1}'
+               ''.format(target[1], target[0]))
+        logger.info('instantiated {0} and committed it'.format(fn))
 
 
 @arglogger
@@ -202,26 +192,56 @@ def git_it(where, what, msg):
     """
     add and commit something to the git repository
     """
+    cmd = 'git add {0} && git commit -m "{1}"'.format(what, msg)
+    run(cmd, where)
+
+
+@arglogger
+def run(cmd, where=None, check=True):
+    """
+    use subprocess to execute a desired command in the shell
+    """
     logger = logging.getLogger(sys._getframe().f_code.co_name)
+    run_params = [
+        'bash',
+        '-c',
+        '. ~/.bash_profile'
+    ]
+    if where is not None:
+        run_params[-1] += ' && cd {0}'.format(where)
+    run_params[-1] += ' && {0}'.format(cmd)
+    logger.debug('run_params: \n      {0}'.format('\n      '.join(run_params)))
     try:
         result = subprocess.run(
-            [
-                'bash',
-                '-c',
-                '. ~/.bash_profile && cd {0} && git add {1} '
-                '&& git commit -m "{2}"'
-                ''.format(where, what, msg)
-            ],
+            run_params,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            check=True).stdout
+            check=check).stdout
     except subprocess.CalledProcessError as e:
-        logger.critical('git add and commit exited with status code '
-                        '{0}:\n      '.format(e.returncode) +
-                        '      \n'.join(e.output.decode('utf-8').split('\n')))
-        raise
-    logger.debug('git add and commit output:\n      ' +
-                 '\n      '.join(result.decode('utf-8').split('\n')))
+        logger.critical('subprocess execution failed with status code '
+                        '{0}:\n    '.format(e.returncode) +
+                        'command was: "{0}\n      "'.format(run_params) +
+                        'captured output:      ' +
+                        '\n      '.join(result.decode('utf-8').split('\n')))
+
+
+def fetch(targets):
+    """
+    fetch file(s) from url(s), concatenate, and save locally
+    """
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    for target in targets:
+        logger.debug('requesting {0}'.format(target[0]))
+        r = requests.get(target[0], stream=True)
+        if r.status_code == 200:
+            # appending ensures we can aggregate, e.g., .gitignore content
+            with open('{0}'.format(target[1]), 'ab') as f:
+                r.raw.decode_content = True
+                shutil.copyfileobj(r.raw, f)
+        else:
+            raise Exception('fetch of {0} failed with status code {1}'
+                            ''.format([0], r.status_code))
+            sys.exit(1)
 
 
 if __name__ == "__main__":
