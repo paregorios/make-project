@@ -120,17 +120,8 @@ def create_venv(where, python_version):
         sys.exit(1)
     # somewhy following returns failure code 1 even when successful,
     # so can't try
-    result = subprocess.run(
-        [
-            'bash',
-            '-c',
-            '. ~/.bash_profile && mkvirtualenv -v -p {0} {1} && deactivate'
-            ''.format(v, env_dir)
-        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
-    logger.debug('mkvirtualenv output:\n      ' +
-                 '\n      '.join(result.decode('utf-8').split('\n')))
-    logger.info('created python virtual environment at {0} with {1}'
-                ''.format(where, v))
+    cmd = 'mkvirtualenv -v -p {0} {1} && deactivate'.format(v, env_dir)
+    run(cmd)
 
 
 @arglogger
@@ -139,14 +130,16 @@ def create_git(where):
     create git repository
     """
     logger = logging.getLogger(sys._getframe().f_code.co_name)
-    result = subprocess.run(
-        [
-            'bash',
-            '-c',
-            '. ~/.bash_profile && git init {0}'.format(where)
-        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True).stdout
-    logger.debug('git init output:\n      ' +
-                 '\n      '.join(result.decode('utf-8').split('\n')))
+    #result = subprocess.run(
+    #    [
+    #        'bash',
+    #        '-c',
+    #        '. ~/.bash_profile && git init {0}'.format(where)
+    #    ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True).stdout
+    #logger.debug('git init output:\n      ' +
+    #             '\n      '.join(result.decode('utf-8').split('\n')))
+    cmd = 'git init {0}'.format(where)
+    run(cmd)
     logger.info('initialized git repository at {0}'.format(where))
     logger.debug('trying to set up .gitignore')
     for url in GITIGNORE_URLS:
@@ -191,8 +184,6 @@ def init_package(where, git=False):
     """
     set up as a python package
     """
-    raise NotImplementedError('package creation has not been implemented'
-                              ' yet in this script')
 
 
 @arglogger
@@ -200,26 +191,36 @@ def git_it(where, what, msg):
     """
     add and commit something to the git repository
     """
+    cmd = 'git add {0} && git commit -m "{1}"'.format(what, msg)
+    run(cmd, where)
+
+
+@arglogger
+def run(cmd, where=None):
+    """
+    use subprocess to execute a desired command in the shell
+    """
     logger = logging.getLogger(sys._getframe().f_code.co_name)
+    run_params = [
+        'bash',
+        '-c',
+        '. ~/.bash_profile'
+    ]
+    if where is not None:
+        run_params.append(' && cd {0}'.format(where))
+    run_params.append(' && {0}'.format(cmd))
     try:
         result = subprocess.run(
-            [
-                'bash',
-                '-c',
-                '. ~/.bash_profile && cd {0} && git add {1} '
-                '&& git commit -m "{2}"'
-                ''.format(where, what, msg)
-            ],
+            run_params,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             check=True).stdout
     except subprocess.CalledProcessError as e:
-        logger.critical('git add and commit exited with status code '
-                        '{0}:\n      '.format(e.returncode) +
-                        '      \n'.join(e.output.decode('utf-8').split('\n')))
-        raise
-    logger.debug('git add and commit output:\n      ' +
-                 '\n      '.join(result.decode('utf-8').split('\n')))
+        logger.critical('subprocess execution failed with status code '
+                        '{0}:\n    '.format(e.returncode) +
+                        'command was: "{0}\n      "'.format(run_params) +
+                        'captured output:      ' +
+                        '\n      '.join(result.decode('utf-8').split('\n')))
 
 
 if __name__ == "__main__":
