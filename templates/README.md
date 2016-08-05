@@ -1,14 +1,9 @@
-A sample Python project
-=======================
-
-A sample project that exists as an aid to the [Python Packaging User Guide](https://packaging.python.org)'s [Tutorial on Packaging and Distributing Projects](https://packaging.python.org/en/latest/distributing.html).
-
-This projects does not aim to cover best practices for Python project development as a whole. For example, it does not provide guidance or tool recommendations for version control, documentation, or testing.
-
-------------------------------------------------------------------------
+# A sample Python project README file
 
 This is the README file for the project.
 
-The file should use UTF-8 encoding and be written using ReStructured Text. It will be used to generate the project webpage on PyPI and will be displayed as the project homepage on common code-hosting services, and should be written for that purpose.
+The file should use UTF-8 encoding and be written using [Github-flavored Markdown Text](https://guides.github.com/features/mastering-markdown/). It will be displayed as the package repository home page on [GitHub](https://github.com/), and should be written for that purpose. 
+
+Note that, if and when the package is to be distributed via [PyPI](https://pypi.python.org/pypi)r, it will be necessary to convert this file to [reStructuredText](http://docutils.sourceforge.net/rst.html) format. [Pandoc](http://pandoc.org/) is the preferred tool for this task.
 
 Typical contents for this file would include an overview of the project, basic usage examples, etc. Generally, including the project changelog in here is not a good idea, although a simple "What's New" section for the most recent version may be appropriate.
