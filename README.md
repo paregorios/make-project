@@ -81,6 +81,7 @@ I might do more work on this at some point, hence the following to-do list:
  * Config file support
  * Non-hard-coded directory and file references
  * provide requirements and stuff so config to run this script is easier
+ * set up of LICENSE file
 
 Forking is encouraged. Pull requests containing new or improved features are welcome (including items on the to-do list). They are likely to be merged unless they break something that works for me now or they add stuff I don't need that can't be turned off. Bug reports will be reviewed, but will be closed "won't fix" unless they're occurring on my machine. If you provide a patch or pull request with the bug report, and it doesn't break stuff that's working for me, I will probably merge it. Responsiveness timescales may vary wildly.
 
