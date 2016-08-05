@@ -139,16 +139,9 @@ def create_git(where):
     run(cmd)
     logger.info('initialized git repository at {0}'.format(where))
     logger.debug('trying to set up .gitignore')
-    for url in GITIGNORE_URLS:
-        logger.debug('requesting {0}'.format(url))
-        r = requests.get(url, stream=True)
-        if r.status_code == 200:
-            with open(where + '/.gitignore', 'ab') as f:
-                r.raw.decode_content = True
-                shutil.copyfileobj(r.raw, f)
-        else:
-            raise Exception('aiiiiieeeee')
-            sys.exit(1)
+    targets = [(url, os.path.join(where, '.gitignore'))
+               for url in GITIGNORE_URLS]
+    fetch(targets)
     git_it(where, '.gitignore', 'intial values for .gitignore from: {0}'
            ''.format(', '.join(GITIGNORE_URLS)))
     logger.info('instantiated .gitignore and committed it')
@@ -182,20 +175,14 @@ def init_package(where, git=False):
     set up as a python package
     """
     logger = logging.getLogger(sys._getframe().f_code.co_name)
-    for url in PACKAGE_URLS:
-        fn = url.rsplit('/', 1)[-1]
-        fpath = os.path.join(where, fn)
-        r = requests.get(url, stream=True)
-        if r.status_code == 200:
-            with open(fpath, 'ab') as f:
-                r.raw.decode_content = True
-                shutil.copyfileobj(r.raw, f)
-        else:
-            raise Exception('aiiiiieeeee')
-            sys.exit(1)
+    targets = [(url, os.path.join(where, url.rsplit('/', 1)[-1]))
+               for url in PACKAGE_URLS]
+    fetch(targets)
+    for target in targets:
+        fn = os.path.basename(target[1])
         git_it(where, fn, 'intial content for {0} from: {1}'
-               ''.format(fn, url))
-        logger.info('instantiated {0} and committed it'.format(fpath))
+               ''.format(target[1], target[0]))
+        logger.info('instantiated {0} and committed it'.format(fn))
 
 
 @arglogger
@@ -234,6 +221,25 @@ def run(cmd, where=None, check=True):
                         'command was: "{0}\n      "'.format(run_params) +
                         'captured output:      ' +
                         '\n      '.join(result.decode('utf-8').split('\n')))
+
+
+def fetch(targets):
+    """
+    fetch file(s) from url(s), concatenate, and save locally
+    """
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    for target in targets:
+        logger.debug('requesting {0}'.format(target[0]))
+        r = requests.get(target[0], stream=True)
+        if r.status_code == 200:
+            # appending ensures we can aggregate, e.g., .gitignore content
+            with open('{0}'.format(target[1]), 'ab') as f:
+                r.raw.decode_content = True
+                shutil.copyfileobj(r.raw, f)
+        else:
+            raise Exception('fetch of {0} failed with status code {1}'
+                            ''.format([0], r.status_code))
+            sys.exit(1)
 
 
 if __name__ == "__main__":
