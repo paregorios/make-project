@@ -75,9 +75,8 @@ The only non-standard Python package used is [*Requests*](http://docs.python-req
 
 I might do more work on this at some point, hence the following to-do list:
 
- * Add support for setting up a working directory as a Python package (presently just stubbed out)
- * Add README file init (presently just stubbed out)
- * Fold script and package templates into this repos
+ * Add support for setting up a working directory as a Python package (presently work in progress; see branch "package")
+ * Fold package templates into this repos
  * Config file support
  * Non-hard-coded directory and file references
  * provide requirements and stuff so config to run this script is easier
