@@ -43,12 +43,17 @@ template_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
 TEMPLATES = {
     'script-2': os.path.join(template_dir, 'script-template-2.py'),
     'script-3': os.path.join(template_dir, 'script-template-3.py'),
-    'readme': os.path.join(template_dir, 'README.md')
+    'readme': os.path.join(template_dir, 'README.md'),
+    'requirements': os.path.join(template_dir, 'requirements_dev.txt')
 }
 PACKAGE_URLS = [
     'https://raw.githubusercontent.com/pypa/sampleproject/master/setup.py',
     'https://raw.githubusercontent.com/pypa/sampleproject/master/setup.cfg',
     'https://raw.githubusercontent.com/pypa/sampleproject/master/MANIFEST.in'
+]
+PACKAGE_SUBDIRECTORIES = [
+    ('scripts', True, []),
+    ('tests', True, [])
 ]
 
 
@@ -85,7 +90,10 @@ def main(args):
     if args.script:
         init_script(where, args.pyver, args.git)
     if args.package:
-        init_package(where, args.git)
+        subdirectories = [
+            (os.path.basename(where), True, PACKAGE_SUBDIRECTORIES)
+        ]
+        init_package(where, args.git, subdirectories)
 
 
 @arglogger
@@ -121,7 +129,9 @@ def create_readme(where, git=False):
     if git:
         git_it(os.path.dirname(dest), dest_fn,
                'include default readme template')
-    logger.info('added readme template as {0}'.format(dest_fn))
+        logger.info('instantiated {0} and committed it'.format(dest_fn))
+    else:
+        logger.info('instantiated {0}'.format(dest_fn))
 
 
 @arglogger
@@ -174,7 +184,7 @@ def init_script(where, py_ver, git=False):
     src = os.path.abspath(src)
     logger.debug('src: {0}'.format(src))
     dest_fn = '{0}.py'.format(os.path.basename(where))
-    dest = '{0}/{1}'.format(where, dest_fn)
+    dest = os.path.join(where, dest_fn)
     shutil.copy2(src, dest)
     logger.debug('copied {0} to {1}'.format(src, dest))
     if git:
@@ -184,19 +194,74 @@ def init_script(where, py_ver, git=False):
 
 
 @arglogger
-def init_package(where, git=False):
+def init_package(where, git=False, subdirectories=[]):
     """
     set up as a python package
     """
     logger = logging.getLogger(sys._getframe().f_code.co_name)
+    # stub out files using external templates
     targets = [(url, os.path.join(where, url.rsplit('/', 1)[-1]))
                for url in PACKAGE_URLS]
     fetch(targets)
     for target in targets:
         fn = os.path.basename(target[1])
-        git_it(where, fn, 'intial content for {0} from: {1}'
-               ''.format(target[1], target[0]))
-        logger.info('instantiated {0} and committed it'.format(fn))
+        if git:
+            git_it(where, fn, 'intial content for {0} from: {1}'
+                   ''.format(target[1], target[0]))
+            logger.info('instantiated {0} and committed it'.format(fn))
+        else:
+            logger.info('instantiated {0}'.format(fn))
+    # stub out additional files using internal templates
+    templates = []
+    templates.append(TEMPLATES['requirements'])
+    for template in templates:
+        src = os.path.expanduser(template)
+        src = os.path.abspath(src)
+        dest_fn = os.path.basename(src)
+        dest = os.path.join(where, dest_fn)
+        shutil.copy2(src, dest)
+        logger.debug('copied {0} to {1}'.format(src, dest))
+        if git:
+            git_it(os.path.dirname(dest), dest_fn,
+                   'include default {0} template'.format(dest_fn))
+            logger.info('instantiated {0} and committed it'.format(dest_fn))
+        else:
+            logger.info('instantiated {0}'.format(dest_fn))
+    # create subordinate folders
+    logger.debug(subdirectories)
+    for sub_dir in subdirectories:
+        make_subdir(where, git, *sub_dir)
+
+
+@arglogger
+def make_subdir(where, git, dname, init, children):
+    """
+    create a subdirectory
+    """
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    target = os.path.join(where, dname)
+    logger.debug('trying to make "{0}"'.format(target))
+    try:
+        os.makedirs(target)
+    except OSError as e:
+        if e.errno == errno.EEXIST and os.path.isdir(where):
+            logger.critical(
+                'script run with directory creation, but {0} already exists'
+                ''.format(target))
+            sys.exit(1)
+    if init:
+        fn = '__init__.py'
+        fp = os.path.join(target, fn)
+        with open(fp, 'w'):
+            pass
+        if git:
+            git_it(target, fn, 'make {0} part of the package by adding '
+                   '__init__.py'.format(target))
+            logger.info('instantiated {0} and committed it'.format(fp))
+        else:
+            logger.info('instantiated {0}'.format(fp))
+    for child in children:
+        make_subdir(target, git, *child)
 
 
 @arglogger
