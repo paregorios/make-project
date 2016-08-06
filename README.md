@@ -67,7 +67,10 @@ make.py makes a ton of assumptions, to include:
  * [Doug Hellman's *virtualenvwrapper*](http://virtualenvwrapper.readthedocs.io/en/latest/) installed with *Homebrew*.
  * Access to the Internet at runtime
 
-The only non-standard Python package used is [*Requests*](http://docs.python-requests.org/en/master/).
+The only non-standard Python packages used are:
+
+ * [*Requests*](http://docs.python-requests.org/en/master/).
+ * [*Python Frontmatter*](https://github.com/eyeseast/python-frontmatter)
 
 
 ## Development

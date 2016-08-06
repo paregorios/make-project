@@ -4,6 +4,7 @@ Make a project directory with associated setup
 
 import argparse
 import errno
+import frontmatter
 from functools import wraps
 import inspect
 import logging
@@ -30,7 +31,8 @@ POSITIONAL_ARGUMENTS = sorted([
     ['-s', '--script', False, 'set up with a python script'],
     ['-k', '--package', False, 'set up as a python package'],
     ['-r', '--readme', False, 'add a readme file template'],
-    ['-q', '--quiet', False, 'suppress output (logging level == CRITICAL)']
+    ['-q', '--quiet', False, 'suppress output (logging level == CRITICAL)'],
+    ['-x', '--license', 'agpl-3.0', 'license to use ("none" is an option)']
 ])
 GITIGNORE_URLS = [
     'https://raw.githubusercontent.com/github/gitignore/master/Global/' +
@@ -55,6 +57,42 @@ PACKAGE_SUBDIRECTORIES = [
     ('scripts', True, []),
     ('tests', True, [])
 ]
+LICENSE_FIXES = {
+    'cal': {
+        'prefix': ('https://raw.githubusercontent.com/github/'
+                   'choosealicense.com/gh-pages/_licenses/'),
+        'suffix': '.txt'
+    }
+}
+LICENSES = {
+    'afl-3.0': ('Academic Free License v3.0', 'cal'),
+    'agpl-3.0': ('GNU Affero General Public License v3.0', 'cal'),
+    'apache-2.0': ('Apache License 2.0', 'cal'),
+    'artistic-2.0': ('Artistic License 2.0', 'cal'),
+    'bsd-2-clause': ('BSD 2-clause "Simplified" License', 'cal'),
+    'bsd-3-clause-clear': ('BSD 3-clause Clear License', 'cal'),
+    'bsd-3-clause': ('BSD 3-clause "New" or "Revised" License', 'cal'),
+    'cc-by-4.0': ('Creative Commons Attribution 4.0', 'cal'),
+    'cc-by-sa-4.0': ('Creative Commons Attribution Share Alike 4.0', 'cal'),
+    'cc0-1.0': ('Creative Commons Zero v1.0 Universal', 'cal'),
+    'epl-1.0': ('Eclipse Public License 1.0', 'cal'),
+    'eupl-1.1': ('European Union Public License 1.1', 'cal'),
+    'gpl-2.0': ('GNU General Public License v2.0', 'cal'),
+    'gpl-3.0': ('GNU General Public License v3.0', 'cal'),
+    'isc': ('ISC License', 'cal'),
+    'lgpl-2.1': ('GNU Lesser General Public License v2.1', 'cal'),
+    'lgpl-3.0': ('GNU Lesser General Public License v3.0', 'cal'),
+    'lppl-1.3c': ('LaTeX Project Public License v1.3c', 'cal'),
+    'mit': ('MIT License', 'cal'),
+    'mpl-2.0': ('Mozilla Public License 2.0', 'cal'),
+    'ms-pl': ('Microsoft Public License', 'cal'),
+    'ms-rl': ('Microsoft Reciprocal License', 'cal'),
+    'ofl-1.1': ('SIL Open Font License 1.1', 'cal'),
+    'osl-3.0': ('Open Software License 3.0', 'cal'),
+    'unlicense': ('The Unlicense', 'cal'),
+    'wtfpl': ('"Do What The F*ck You Want To Public License"', 'cal'),
+    'zlib': ('zlib License', 'cal')
+}
 
 
 def arglogger(func):
@@ -94,6 +132,8 @@ def main(args):
             (os.path.basename(where), True, PACKAGE_SUBDIRECTORIES)
         ]
         init_package(where, args.git, subdirectories)
+    if args.license.lower() != 'none':
+        create_license(where, args.license, args.git)
 
 
 @arglogger
@@ -111,6 +151,28 @@ def create_directory(where):
                 ''.format(where))
             sys.exit(1)
     logger.info('created new project directory at {0}'.format(where))
+
+
+@arglogger
+def create_license(where, license, git=False):
+    """
+    add preferred LICENSE file
+    """
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    fn = 'LICENSE'
+    title, vocab = LICENSES[license]
+    url = (LICENSE_FIXES[vocab]['prefix'] + license +
+           LICENSE_FIXES[vocab]['suffix'])
+    targets = [(url, os.path.join(where, fn))]
+    fetch(targets, strip_yaml=True)
+    if git:
+        git_it(where, fn, 'assigned the {0} using text from: {1}'
+               ''.format(title, url))
+        logger.info('instantiated and committed {0} using {1} from '
+                    '{2}'.format(fn, title, url))
+    else:
+        logger.info('instantiated {0} using {0} from {1}'.format(fn, title,
+                                                                 url))
 
 
 @arglogger
@@ -151,6 +213,8 @@ def create_venv(where, python_version):
     # so can't try
     cmd = 'mkvirtualenv -v -p {0} {1} && deactivate'.format(v, env_dir)
     run(cmd, check=False)  # mkvirtualenv returns non-zero code despite success
+    logger.info('instantiated python {0} virtual environment at {1}'
+                ''.format(python_version, env_dir))
 
 
 @arglogger
@@ -302,7 +366,7 @@ def run(cmd, where=None, check=True):
                         '\n      '.join(result.decode('utf-8').split('\n')))
 
 
-def fetch(targets):
+def fetch(targets, strip_yaml=False):
     """
     fetch file(s) from url(s), concatenate, and save locally
     """
@@ -319,6 +383,15 @@ def fetch(targets):
             raise Exception('fetch of {0} failed with status code {1}'
                             ''.format([0], r.status_code))
             sys.exit(1)
+        logger.debug('successfully saved {0} as {1}'.format(*target))
+    if strip_yaml:
+        for target in targets:
+            fp = target[1]
+            post = frontmatter.load(fp)
+            shutil.copy(fp, os.path.splitext(fp)[0] + '.bak')
+            with open(fp, 'w') as f:
+                f.write(post.content)
+            logger.debug('removed yaml front matter from {0}'.format(fp))
 
 
 if __name__ == "__main__":
