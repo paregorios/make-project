@@ -27,7 +27,7 @@ Note the output of ```python make.py -h```:
 
 ```
 usage: make.py [-h] [-c] [-g] [-k] [-l LOGLEVEL] [-n PYVER] [-p] [-q] [-r]
-               [-s] [-v] [-w]
+               [-s] [-v] [-w] [-x LICENSE]
                where
 
 Make a project directory with associated setup
@@ -55,6 +55,9 @@ optional arguments:
                         False)
   -w, --veryverbose     very verbose output (logging level == DEBUG) (default:
                         False)
+  -x LICENSE, --license LICENSE
+                        license to use ("none" is an option) (default:
+                        agpl-3.0)
 ```
 
 
@@ -72,17 +75,22 @@ The only non-standard Python packages used are:
  * [*Requests*](http://docs.python-requests.org/en/master/).
  * [*Python Frontmatter*](https://github.com/eyeseast/python-frontmatter)
 
+Current code makes use of the following external resources as templates or defaults:
+
+ * Standard package files (like setup.py) from the [Python Packaging Authority's sample project respository](https://github.com/pypa/sampleproject)
+ * .gitignore content for OSX and Python from [GitHub's gitignore templates repository](https://github.com/github/gitignore)
+ * License text files from [GitHub's choosealicense.com repository](https://github.com/github/choosealicense.com)
+
 
 ## Development
 
 I might do more work on this at some point, hence the following to-do list:
 
- * Add support for setting up a working directory as a Python package (presently work in progress; see branch "package")
+ * Enhance package creation support by filling in values in setup.py
  * Fold package templates into this repos
  * Config file support
  * Non-hard-coded directory and file references
  * provide requirements and stuff so config to run this script is easier
- * set up of LICENSE file
 
 Forking is encouraged. Pull requests containing new or improved features are welcome (including items on the to-do list). They are likely to be merged unless they break something that works for me now or they add stuff I don't need that can't be turned off. Bug reports will be reviewed, but will be closed "won't fix" unless they're occurring on my machine. If you provide a patch or pull request with the bug report, and it doesn't break stuff that's working for me, I will probably merge it. Responsiveness timescales may vary wildly.
 
