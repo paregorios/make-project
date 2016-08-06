@@ -227,9 +227,12 @@ def create_git(where):
     run(cmd)
     logger.info('initialized git repository at {0}'.format(where))
     logger.debug('trying to set up .gitignore')
-    targets = [(url, os.path.join(where, '.gitignore'))
+    fp = os.path.join(where, '.gitignore')
+    targets = [(url, fp)
                for url in GITIGNORE_URLS]
     fetch(targets)
+    with open(fp, 'a') as f:
+        f.write('*.bak')
     git_it(where, '.gitignore', 'intial values for .gitignore from: {0}'
            ''.format(', '.join(GITIGNORE_URLS)))
     logger.info('instantiated .gitignore and committed it')
