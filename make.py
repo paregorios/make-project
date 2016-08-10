@@ -3,18 +3,22 @@ Make a project directory with associated setup
 """
 
 import argparse
+from copy import deepcopy
 import errno
 import frontmatter
 from functools import wraps
 import inspect
+from licenses import LICENSES
 import logging
 import os
 import re
 import requests
 import shutil
+from string import Formatter
 import subprocess
 import sys
 import traceback
+
 
 DEFAULT_LOG_LEVEL = logging.INFO
 POSITIONAL_ARGUMENTS = sorted([
@@ -26,13 +30,30 @@ POSITIONAL_ARGUMENTS = sorted([
         'very verbose output (logging level == DEBUG)'],
     ['-c', '--create', False, 'create directory at indicated path'],
     ['-p', '--pyvenv', False, 'create a python virtual environment'],
-    ['-n', '--pyver', '3', 'version of python to use in virtual environment'],
+    ['-n', '--pyversion', '3', 'version of python to use in virtual '
+                               'environment'],
     ['-g', '--git', False, 'create a new git repository'],
     ['-s', '--script', False, 'set up with a python script'],
     ['-k', '--package', False, 'set up as a python package'],
     ['-r', '--readme', False, 'add a readme file template'],
     ['-q', '--quiet', False, 'suppress output (logging level == CRITICAL)'],
-    ['-x', '--license', 'agpl-3.0', 'license to use ("none" is an option)']
+    ['-x', '--license', 'agpl-3.0', 'license to use ("none" is an option)'],
+    ['-kv', '--pkgversion', '0.1', 'PEP440 version number to use in setup.py'],
+    ['-kd', '--pkgdescription', 'change me', 'description to use in setup.py'],
+    ['-kh', '--pkghomepage', 'http://change.me', 'home page to use in '
+                                                 'setup.py'],
+    ['-ka', '--pkgauthor', 'Change Me', 'user name to use in setup.py'],
+    ['-ke', '--pkgemail', 'change@me.org', 'email address to use in setup.py'],
+    ['-cs', '--classdevstatus', '1 - Planning', 'development status '
+                                                'classifier to use in '
+                                                'setup.py'],
+    ['-ca', '--classaudience', 'Developers', 'intended audience classifier '
+                                             'to use in setup.py'],
+    ['-ct', '--classtopic', 'Change Me', 'topic classifier to use in '
+                                         'setup.py'],
+    ['-kk', '--pkgkeywords', '"change me", "please change me', 'keywords to '
+                                                               'use in '
+                                                               'setup.py']
 ])
 GITIGNORE_URLS = [
     'https://raw.githubusercontent.com/github/gitignore/master/Global/' +
@@ -46,16 +67,20 @@ TEMPLATES = {
     'script-2': os.path.join(template_dir, 'script-template-2.py'),
     'script-3': os.path.join(template_dir, 'script-template-3.py'),
     'readme': os.path.join(template_dir, 'README.md'),
-    'requirements': os.path.join(template_dir, 'requirements_dev.txt')
+    'requirements': os.path.join(template_dir, 'requirements_dev.txt'),
+    'setup': os.path.join(template_dir, 'setup-template.py')
+}
+TEMPLATE_RENAMES = {
+    'setup-template.py': 'setup.py'
 }
 PACKAGE_URLS = [
-    'https://raw.githubusercontent.com/pypa/sampleproject/master/setup.py',
     'https://raw.githubusercontent.com/pypa/sampleproject/master/setup.cfg',
     'https://raw.githubusercontent.com/pypa/sampleproject/master/MANIFEST.in'
 ]
 PACKAGE_SUBDIRECTORIES = [
     ('scripts', True, []),
-    ('tests', True, [])
+    ('tests', True, []),
+    ('data', False, [])
 ]
 LICENSE_FIXES = {
     'cal': {
@@ -63,35 +88,6 @@ LICENSE_FIXES = {
                    'choosealicense.com/gh-pages/_licenses/'),
         'suffix': '.txt'
     }
-}
-LICENSES = {
-    'afl-3.0': ('Academic Free License v3.0', 'cal'),
-    'agpl-3.0': ('GNU Affero General Public License v3.0', 'cal'),
-    'apache-2.0': ('Apache License 2.0', 'cal'),
-    'artistic-2.0': ('Artistic License 2.0', 'cal'),
-    'bsd-2-clause': ('BSD 2-clause "Simplified" License', 'cal'),
-    'bsd-3-clause-clear': ('BSD 3-clause Clear License', 'cal'),
-    'bsd-3-clause': ('BSD 3-clause "New" or "Revised" License', 'cal'),
-    'cc-by-4.0': ('Creative Commons Attribution 4.0', 'cal'),
-    'cc-by-sa-4.0': ('Creative Commons Attribution Share Alike 4.0', 'cal'),
-    'cc0-1.0': ('Creative Commons Zero v1.0 Universal', 'cal'),
-    'epl-1.0': ('Eclipse Public License 1.0', 'cal'),
-    'eupl-1.1': ('European Union Public License 1.1', 'cal'),
-    'gpl-2.0': ('GNU General Public License v2.0', 'cal'),
-    'gpl-3.0': ('GNU General Public License v3.0', 'cal'),
-    'isc': ('ISC License', 'cal'),
-    'lgpl-2.1': ('GNU Lesser General Public License v2.1', 'cal'),
-    'lgpl-3.0': ('GNU Lesser General Public License v3.0', 'cal'),
-    'lppl-1.3c': ('LaTeX Project Public License v1.3c', 'cal'),
-    'mit': ('MIT License', 'cal'),
-    'mpl-2.0': ('Mozilla Public License 2.0', 'cal'),
-    'ms-pl': ('Microsoft Public License', 'cal'),
-    'ms-rl': ('Microsoft Reciprocal License', 'cal'),
-    'ofl-1.1': ('SIL Open Font License 1.1', 'cal'),
-    'osl-3.0': ('Open Software License 3.0', 'cal'),
-    'unlicense': ('The Unlicense', 'cal'),
-    'wtfpl': ('"Do What The F*ck You Want To Public License"', 'cal'),
-    'zlib': ('zlib License', 'cal')
 }
 
 
@@ -112,28 +108,26 @@ def main(args):
     """
     main function
     """
-    # logger = logging.getLogger(sys._getframe().f_code.co_name)
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
 
     where = os.path.abspath(args.where)
+    # global variables
     if args.script and args.package:
         raise ValueError('cannot create both a script and a package')
     if args.create:
         create_directory(where)
     if args.pyvenv:
-        create_venv(where, args.pyver)
+        create_venv(where, args.pyversion)
     if args.git:
         create_git(where)
     if args.readme:
         create_readme(where, args.git)
     if args.script:
-        init_script(where, args.pyver, args.git)
-    if args.package:
-        subdirectories = [
-            (os.path.basename(where), True, PACKAGE_SUBDIRECTORIES)
-        ]
-        init_package(where, args.git, subdirectories)
+        init_script(where, args.pyversion, args.git)
     if args.license.lower() != 'none':
         create_license(where, args.license, args.git)
+    if args.package:
+        init_package(where, args)
 
 
 @arglogger
@@ -159,20 +153,34 @@ def create_license(where, license, git=False):
     add preferred LICENSE file
     """
     logger = logging.getLogger(sys._getframe().f_code.co_name)
-    fn = 'LICENSE'
-    title, vocab = LICENSES[license]
-    url = (LICENSE_FIXES[vocab]['prefix'] + license +
-           LICENSE_FIXES[vocab]['suffix'])
-    targets = [(url, os.path.join(where, fn))]
-    fetch(targets, strip_yaml=True)
-    if git:
-        git_it(where, fn, 'assigned the {0} using text from: {1}'
-               ''.format(title, url))
-        logger.info('instantiated and committed {0} using {1} from '
-                    '{2}'.format(fn, title, url))
+    fn = 'LICENSE.txt'
+    ld = LICENSES[license]
+    try:
+        src = ld['src']
+    except KeyError:
+        logger.warning('License data not found for "{0}". License creation '
+                           'skipped.'.format(license))
     else:
-        logger.info('instantiated {0} using {0} from {1}'.format(fn, title,
-                                                                 url))
+        logger.debug('src: "{0}"'.format(src))
+        logger.debug('src[0:2]: "{0}"'.format(src[0:2]))
+        if src[0:2] == '::':
+            logger.debug('src[2:]: "{0}"'.format(src[2:]))
+            src = src[2:]
+            url = (LICENSE_FIXES[src]['prefix'] + license +
+                   LICENSE_FIXES[src]['suffix'])
+        else:
+            url = src
+        targets = [(url, os.path.join(where, fn))]
+        fetch(targets, strip_yaml=True)
+        if git:
+            title = ld['title']
+            git_it(where, fn, 'assigned the {0} using text from: {1}'
+                   ''.format(title, url))
+            logger.info('instantiated and committed {0} using {1} from '
+                        '{2}'.format(fn, title, url))
+        else:
+            logger.info('instantiated {0} using {0} from {1}'.format(fn, title,
+                                                                     url))
 
 
 @arglogger
@@ -261,7 +269,7 @@ def init_script(where, py_ver, git=False):
 
 
 @arglogger
-def init_package(where, git=False, subdirectories=[]):
+def init_package(where, args):
     """
     set up as a python package
     """
@@ -272,7 +280,7 @@ def init_package(where, git=False, subdirectories=[]):
     fetch(targets)
     for target in targets:
         fn = os.path.basename(target[1])
-        if git:
+        if args.git:
             git_it(where, fn, 'intial content for {0} from: {1}'
                    ''.format(target[1], target[0]))
             logger.info('instantiated {0} and committed it'.format(fn))
@@ -280,24 +288,78 @@ def init_package(where, git=False, subdirectories=[]):
             logger.info('instantiated {0}'.format(fn))
     # stub out additional files using internal templates
     templates = []
-    templates.append(TEMPLATES['requirements'])
+    templates.extend([TEMPLATES['requirements'], TEMPLATES['setup']])
     for template in templates:
+        logger.debug('template: {0}'.format(template))
         src = os.path.expanduser(template)
         src = os.path.abspath(src)
         dest_fn = os.path.basename(src)
         dest = os.path.join(where, dest_fn)
         shutil.copy2(src, dest)
         logger.debug('copied {0} to {1}'.format(src, dest))
-        if git:
+        dest_fn = fixup_template(where, template, args)
+        if args.git:
             git_it(os.path.dirname(dest), dest_fn,
                    'include default {0} template'.format(dest_fn))
             logger.info('instantiated {0} and committed it'.format(dest_fn))
         else:
             logger.info('instantiated {0}'.format(dest_fn))
     # create subordinate folders
-    logger.debug(subdirectories)
-    for sub_dir in subdirectories:
-        make_subdir(where, git, *sub_dir)
+    for sub_dir in PACKAGE_SUBDIRECTORIES:
+        make_subdir(where, args.git, *sub_dir)
+
+
+@arglogger
+def fixup_template(where, template, args):
+    """
+    rename template and substitute variables if necessary
+    """
+    logger = logging.getLogger(sys._getframe().f_code.co_name)
+    fn = os.path.basename(template)
+    logger.debug('running fixup_template on {0}'.format(fn))
+    with open(os.path.join(where, fn), 'r') as f:
+        t = f.read()
+    logger.debug('setting up replacements for {0}'.format(fn))
+    fkeys = [v[1] for v in Formatter().parse(t) if v[1] is not None]
+    if len(fkeys) > 0:
+        logger.debug('fkeys: {0}'.format(', '.join(fkeys)))
+        replacements = {}
+        missed = []
+        for fk in fkeys:
+            try:
+                val = vars(args)[fk]
+            except KeyError:
+                missed.append(fk)
+            else:
+                replacements[fk] = val
+        logger.debug('replacements: {0}'.format(', '.join(['[{0}]: "{1}"'.format(k, v)
+                     for k, v in replacements.items()])))
+        if 'pkgreadme' in missed:
+            replacements['pkgreadme'] = os.path.basename(TEMPLATES['readme'])
+        if 'project_name' in missed:
+            replacements['project_name'] = os.path.basename(where)
+        if 'classlicense' in missed:
+            replacements['classlicense'] = LICENSES[args.license]['classifier']
+        logger.debug("missed: {0}".format(', '.join(missed)))
+        logger.debug('read replacements from args')
+        logger.debug(replacements)
+        logger.debug('attemping replacements in {0}'.format(fn))
+        logger.debug(t)
+        logger.debug(replacements)
+        t = t.format(**replacements)
+        logger.debug(t)
+    shutil.copy2(os.path.join(where, fn),
+                 os.path.join(where, '{0}.bak'.format(fn)))
+    with open(os.path.join(where, fn), 'w') as f:
+        f.write(t)
+    try:
+        new_fn = TEMPLATE_RENAMES[fn]
+    except KeyError:
+        pass
+    else:
+        os.rename(os.path.join(where, fn), os.path.join(where, new_fn))
+        return(new_fn)
+    return(fn)
 
 
 @arglogger
