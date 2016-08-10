@@ -3,26 +3,25 @@ from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-with open(path.join(here, '{readme}'), encoding='utf-8') as f:
+with open(path.join(here, '{pkgreadme}'), encoding='utf-8') as f:
     long_description = f.read()
 setup(
-    name='{name}',
-    version='{version}',
-    description='{description}',
+    name='{project_name}',
+    version='{pkgversion}',
+    description='{pkgdescription}',
     long_description=long_description,
-    url='{homepage}',
-    author='{author}',
-    author_email='{email}',
-    license='{license}',
+    url='{pkghomepage}',
+    author='{pkgauthor}',
+    author_email='{pkgemail}',
+    license='LICENSE.txt',
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
-        'Development Status :: {class_devstatus}',
-        'Intended Audience :: {class_audience}',
-        'Topic :: {class_topic}',
-        'License :: {class_license}',
-        {class_pyversions_list}
+        'Development Status :: {classdevstatus}',
+        'Intended Audience :: {classaudience}',
+        'Topic :: {classtopic}',
+        'License :: {classlicense}'
     ],
-    keywords='{keywords}',
+    keywords='{pkgkeywords}',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -42,17 +41,17 @@ setup(
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,test]
-    # extras_require={
+    # extras_require={{
     #     'dev': ['check-manifest'],
     #     'test': ['coverage'],
-    # },
+    # }},
 
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
-    # package_data={
+    # package_data={{
     #     'sample': ['package_data.dat'],
-    # },
+    # }},
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
@@ -63,9 +62,9 @@ setup(
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
-    # entry_points={
+    # entry_points={{
     #     'console_scripts': [
     #         'sample=sample:main',
     #     ],
-    # },
+    # }},
 )
