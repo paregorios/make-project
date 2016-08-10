@@ -26,7 +26,10 @@ You'll get:
 Note the output of ```python make.py -h```:
 
 ```
-usage: make.py [-h] [-c] [-g] [-k] [-l LOGLEVEL] [-n PYVER] [-p] [-q] [-r]
+usage: make.py [-h] [-c] [-ca CLASSAUDIENCE] [-cs CLASSDEVSTATUS]
+               [-ct CLASSTOPIC] [-g] [-k] [-ka PKGAUTHOR] [-kd PKGDESCRIPTION]
+               [-ke PKGEMAIL] [-kh PKGHOMEPAGE] [-kk PKGKEYWORDS]
+               [-kv PKGVERSION] [-l LOGLEVEL] [-n PYVERSION] [-p] [-q] [-r]
                [-s] [-v] [-w] [-x LICENSE]
                where
 
@@ -38,12 +41,37 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -c, --create          create directory at indicated path (default: False)
+  -ca CLASSAUDIENCE, --classaudience CLASSAUDIENCE
+                        intended audience classifier to use in setup.py
+                        (default: Developers)
+  -cs CLASSDEVSTATUS, --classdevstatus CLASSDEVSTATUS
+                        development status classifier to use in setup.py
+                        (default: 1 - Planning)
+  -ct CLASSTOPIC, --classtopic CLASSTOPIC
+                        topic classifier to use in setup.py (default: Change
+                        Me)
   -g, --git             create a new git repository (default: False)
   -k, --package         set up as a python package (default: False)
+  -ka PKGAUTHOR, --pkgauthor PKGAUTHOR
+                        user name to use in setup.py (default: Change Me)
+  -kd PKGDESCRIPTION, --pkgdescription PKGDESCRIPTION
+                        description to use in setup.py (default: change me)
+  -ke PKGEMAIL, --pkgemail PKGEMAIL
+                        email address to use in setup.py (default:
+                        change@me.org)
+  -kh PKGHOMEPAGE, --pkghomepage PKGHOMEPAGE
+                        home page to use in setup.py (default:
+                        http://change.me)
+  -kk PKGKEYWORDS, --pkgkeywords PKGKEYWORDS
+                        keywords to use in setup.py (default: "change me",
+                        "please change me)
+  -kv PKGVERSION, --pkgversion PKGVERSION
+                        PEP440 version number to use in setup.py (default:
+                        0.1)
   -l LOGLEVEL, --loglevel LOGLEVEL
                         desired logging level (case-insensitive string: DEBUG,
                         INFO, WARNING, or ERROR (default: INFO)
-  -n PYVER, --pyver PYVER
+  -n PYVERSION, --pyversion PYVERSION
                         version of python to use in virtual environment
                         (default: 3)
   -p, --pyvenv          create a python virtual environment (default: False)
