@@ -79,14 +79,13 @@ Current code makes use of the following external resources as templates or defau
 
  * Standard package files (like setup.py) from the [Python Packaging Authority's sample project respository](https://github.com/pypa/sampleproject)
  * .gitignore content for OSX and Python from [GitHub's gitignore templates repository](https://github.com/github/gitignore)
- * License text files from [GitHub's choosealicense.com repository](https://github.com/github/choosealicense.com)
+ * License text files from [GitHub's choosealicense.com repository](https://github.com/github/choosealicense.com) and elsewhere as necessary
 
 
 ## Development
 
 I might do more work on this at some point, hence the following to-do list:
 
- * Enhance package creation support by filling in values in setup.py
  * Fold package templates into this repos
  * Config file support
  * Non-hard-coded directory and file references
