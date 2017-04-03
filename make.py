@@ -57,7 +57,7 @@ POSITIONAL_ARGUMENTS = sorted([
 ])
 GITIGNORE_URLS = [
     'https://raw.githubusercontent.com/github/gitignore/master/Global/' +
-    'OSX.gitignore',
+    'macOS.gitignore',
     'https://raw.githubusercontent.com/github/gitignore/master/' +
     'Python.gitignore'
     ]
