@@ -6,8 +6,9 @@ Python 3 script template (changeme)
 
 import better_exceptions
 from airtight.cli import configure_commandline
-from airtight.logging import flog
 import logging
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_LOG_LEVEL = logging.WARNING
 OPTIONAL_ARGUMENTS = [

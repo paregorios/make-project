@@ -11,6 +11,7 @@ import inspect
 from licenses import LICENSES
 import logging
 import os
+from pprint import pformat
 import re
 import requests
 import shutil
@@ -64,14 +65,15 @@ GITIGNORE_URLS = [
 template_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                             'templates')
 TEMPLATES = {
-    'script-2': os.path.join(template_dir, 'script-template-2.py'),
-    'script-3': os.path.join(template_dir, 'script-template-3.py'),
+    'script-2': os.path.join(template_dir, 'script_template_2.py'),
+    'script-3': os.path.join(template_dir, 'script_template_3.py'),
+    'package-3': os.path.join(template_dir, 'package_template_3.py'),
     'readme': os.path.join(template_dir, 'README.md'),
     'requirements': os.path.join(template_dir, 'requirements_dev.txt'),
-    'setup': os.path.join(template_dir, 'setup-template.py')
+    'setup': os.path.join(template_dir, 'setup_template.py')
 }
 TEMPLATE_RENAMES = {
-    'setup-template.py': 'setup.py'
+    'setup_template.py': 'setup.py'
 }
 PACKAGE_URLS = [
     'https://raw.githubusercontent.com/pypa/sampleproject/master/setup.cfg',
@@ -274,6 +276,7 @@ def init_package(where, args):
     set up as a python package
     """
     logger = logging.getLogger(sys._getframe().f_code.co_name)
+
     # stub out files using external templates
     targets = [(url, os.path.join(where, url.rsplit('/', 1)[-1]))
                for url in PACKAGE_URLS]
@@ -286,27 +289,61 @@ def init_package(where, args):
             logger.info('instantiated {0} and committed it'.format(fn))
         else:
             logger.info('instantiated {0}'.format(fn))
+
+    # create subordinate package folders
+    for sub_dir in PACKAGE_SUBDIRECTORIES:
+        make_subdir(where, args.git, *sub_dir)
+    pkg_name = os.path.basename(where)
+    pkg_name_parts = pkg_name.split('.')
+    parent = where
+    for n in pkg_name_parts:
+        make_subdir(parent, args.git, n, True, [])
+        parent = os.path.join(where, n)
+    pkg_name = os.path.basename(where)
+    pkg_name_parts = pkg_name.split('.')
+    prev = None
+    for n in pkg_name_parts:
+        try:
+            this = prev[-2]
+        except TypeError:
+            pkg_pile = (n, True, [])
+            this = pkg_pile[-2]
+        else:
+            this.append((n, True, []))
+        prev = this
+    logger.debug('package name pile is {}'.format(pformat(pkg_pile)))
+    make_subdir(where, args.git, *pkg_pile)
+
     # stub out additional files using internal templates
-    templates = []
-    templates.extend([TEMPLATES['requirements'], TEMPLATES['setup']])
+    templates = [
+        (TEMPLATES['requirements'], []),
+        (TEMPLATES['setup'], []),
+        (
+            TEMPLATES['script-{}'.format(args.pyversion)],
+            ['scripts']
+        ),
+        (
+            TEMPLATES['package-{}'.format(args.pyversion)],
+            pkg_name_parts
+        )
+    ]
     for template in templates:
-        logger.debug('template: {0}'.format(template))
-        src = os.path.expanduser(template)
+        logger.debug('template: {0}'.format(template[0]))
+        src = os.path.expanduser(template[0])
         src = os.path.abspath(src)
         dest_fn = os.path.basename(src)
-        dest = os.path.join(where, dest_fn)
+        dest = os.path.join(where, *template[1], dest_fn)
         shutil.copy2(src, dest)
         logger.debug('copied {0} to {1}'.format(src, dest))
-        dest_fn = fixup_template(where, template, args)
+        dest_fn = fixup_template(
+            os.path.join(where, *template[1]), template[0], args)
         if args.git:
             git_it(os.path.dirname(dest), dest_fn,
                    'include default {0} template'.format(dest_fn))
             logger.info('instantiated {0} and committed it'.format(dest_fn))
         else:
             logger.info('instantiated {0}'.format(dest_fn))
-    # create subordinate folders
-    for sub_dir in PACKAGE_SUBDIRECTORIES:
-        make_subdir(where, args.git, *sub_dir)
+
 
 
 @arglogger
