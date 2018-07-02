@@ -56,34 +56,24 @@ POSITIONAL_ARGUMENTS = sorted([
                                                                'use in '
                                                                'setup.py']
 ])
-GITIGNORE_URLS = [
-    'https://raw.githubusercontent.com/github/gitignore/master/Global/' +
-    'macOS.gitignore',
-    'https://raw.githubusercontent.com/github/gitignore/master/' +
-    'Python.gitignore'
-    ]
 template_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                             'templates')
+GITIGNORE_FILE = os.path.join(template_dir, 'gitignore.txt')
 TEMPLATES = {
     'script-2': os.path.join(template_dir, 'script_template_2.py'),
     'script-3': os.path.join(template_dir, 'script_template_3.py'),
     'package-3': os.path.join(template_dir, 'package_template_3.py'),
     'readme': os.path.join(template_dir, 'README.md'),
     'requirements': os.path.join(template_dir, 'requirements_dev.txt'),
-    'setup': os.path.join(template_dir, 'setup_template.py')
+    'setup': os.path.join(template_dir, 'setup_template.py'),
+    'setup_config': os.path.join(template_dir, 'setup.cfg'),
+    'manifest': os.path.join(template_dir, 'MANIFEST.in'),
+    'test_template3': os.path.join(template_dir, 'test_template3.py')
 }
 TEMPLATE_RENAMES = {
     'setup_template.py': 'setup.py'
 }
-PACKAGE_URLS = [
-    'https://raw.githubusercontent.com/pypa/sampleproject/master/setup.cfg',
-    'https://raw.githubusercontent.com/pypa/sampleproject/master/MANIFEST.in'
-]
-PACKAGE_SUBDIRECTORIES = [
-    ('scripts', True, []),
-    ('tests', True, []),
-    ('data', False, [])
-]
+PACKAGE_SUBDIRECTORIES = ['scripts', 'tests', 'data']
 LICENSE_FIXES = {
     'cal': {
         'prefix': ('https://raw.githubusercontent.com/github/'
@@ -91,6 +81,12 @@ LICENSE_FIXES = {
         'suffix': '.txt'
     }
 }
+DEFAULT_DEPENDENCIES = [
+    'airtight',
+    'better_exceptions',
+    'coverage',
+    'nose'
+]
 
 
 def arglogger(func):
@@ -213,7 +209,8 @@ def create_venv(where, python_version):
     """
     logger = logging.getLogger(sys._getframe().f_code.co_name)
     v = '/usr/local/bin/python{0}'.format(python_version)
-    env_dir = '~/Envs/{0}'.format(os.path.basename(where))
+    venv_name = os.path.basename(where)
+    env_dir = '~/Envs/{0}'.format(venv_name)
     if os.path.exists(env_dir):
         logger.critical(
             'script run with venv creation, but {0} already exists'
@@ -225,6 +222,13 @@ def create_venv(where, python_version):
     run(cmd, check=False)  # mkvirtualenv returns non-zero code despite success
     logger.info('instantiated python {0} virtual environment at {1}'
                 ''.format(python_version, env_dir))
+    run('workon {} && pip install -U pip  && deactivate'.format(venv_name))
+    logger.info('upgraded pip to latest version')
+    for dependency in DEFAULT_DEPENDENCIES:
+        cmd = 'workon {} && pip install -U {} && deactivate'.format(
+            venv_name, dependency)
+        run(cmd)
+        logger.info('installed dependency "{}"'.format(dependency))
 
 
 @arglogger
@@ -238,13 +242,8 @@ def create_git(where):
     logger.info('initialized git repository at {0}'.format(where))
     logger.debug('trying to set up .gitignore')
     fp = os.path.join(where, '.gitignore')
-    targets = [(url, fp)
-               for url in GITIGNORE_URLS]
-    fetch(targets)
-    with open(fp, 'a') as f:
-        f.write('*.bak')
-    git_it(where, '.gitignore', 'intial values for .gitignore from: {0}'
-           ''.format(', '.join(GITIGNORE_URLS)))
+    shutil.copy(GITIGNORE_FILE, fp)
+    git_it(where, '.gitignore', 'intial values for .gitignore')
     logger.info('instantiated .gitignore and committed it')
 
 
@@ -277,47 +276,20 @@ def init_package(where, args):
     """
     logger = logging.getLogger(sys._getframe().f_code.co_name)
 
-    # stub out files using external templates
-    targets = [(url, os.path.join(where, url.rsplit('/', 1)[-1]))
-               for url in PACKAGE_URLS]
-    fetch(targets)
-    for target in targets:
-        fn = os.path.basename(target[1])
-        if args.git:
-            git_it(where, fn, 'intial content for {0} from: {1}'
-                   ''.format(target[1], target[0]))
-            logger.info('instantiated {0} and committed it'.format(fn))
-        else:
-            logger.info('instantiated {0}'.format(fn))
-
     # create subordinate package folders
     for sub_dir in PACKAGE_SUBDIRECTORIES:
-        make_subdir(where, args.git, *sub_dir)
+        os.makedirs(os.path.join(where, sub_dir))
     pkg_name = os.path.basename(where)
     pkg_name_parts = pkg_name.split('.')
-    parent = where
-    for n in pkg_name_parts:
-        make_subdir(parent, args.git, n, True, [])
-        parent = os.path.join(where, n)
-    pkg_name = os.path.basename(where)
-    pkg_name_parts = pkg_name.split('.')
-    prev = None
-    for n in pkg_name_parts:
-        try:
-            this = prev[-2]
-        except TypeError:
-            pkg_pile = (n, True, [])
-            this = pkg_pile[-2]
-        else:
-            this.append((n, True, []))
-        prev = this
-    logger.debug('package name pile is {}'.format(pformat(pkg_pile)))
-    make_subdir(where, args.git, *pkg_pile)
+    pkg_pile = os.path.join(where, *pkg_name_parts)
+    os.makedirs(pkg_pile)
 
     # stub out additional files using internal templates
     templates = [
         (TEMPLATES['requirements'], []),
         (TEMPLATES['setup'], []),
+        (TEMPLATES['setup_config'], []),
+        (TEMPLATES['manifest'], []),
         (
             TEMPLATES['script-{}'.format(args.pyversion)],
             ['scripts']
@@ -325,6 +297,10 @@ def init_package(where, args):
         (
             TEMPLATES['package-{}'.format(args.pyversion)],
             pkg_name_parts
+        ),
+        (
+            TEMPLATES['test_template{}'.format(args.pyversion)],
+            ['tests']
         )
     ]
     for template in templates:
@@ -343,8 +319,6 @@ def init_package(where, args):
             logger.info('instantiated {0} and committed it'.format(dest_fn))
         else:
             logger.info('instantiated {0}'.format(dest_fn))
-
-
 
 @arglogger
 def fixup_template(where, template, args):
@@ -463,9 +437,7 @@ def run(cmd, where=None, check=True):
     except subprocess.CalledProcessError as e:
         logger.critical('subprocess execution failed with status code '
                         '{0}:\n    '.format(e.returncode) +
-                        'command was: "{0}\n      "'.format(run_params) +
-                        'captured output:      ' +
-                        '\n      '.join(result.decode('utf-8').split('\n')))
+                        'command was: "{0}\n      "'.format(run_params))
 
 
 def fetch(targets, strip_yaml=False):
